@@ -15,11 +15,31 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $superAdminRole = \App\Models\Role::create([
+            'name' => 'super admin',
+            'description' => 'Global System Administrator with full access'
+        ]);
+
+        $adminRole = \App\Models\Role::create([
+            'name' => 'admin',
+            'description' => 'Administrator with management access'
+        ]);
+
+        $captainRole = \App\Models\Role::create([
+            'name' => 'captain',
+            'description' => 'Team Leader and representative'
+        ]);
+
+        $playerRole = \App\Models\Role::create([
+            'name' => 'player',
+            'description' => 'Professional Esport Player'
+        ]);
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'firstname' => 'Test',
+            'lastname' => 'Admin',
+            'email' => 'admin@example.com',
+            'role_id' => $adminRole->id,
         ]);
     }
 }
