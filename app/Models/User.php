@@ -69,4 +69,61 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(Role::class);
     }
+
+    public function profile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ProfilePlayer::class);
+    }
+
+    public function playerGameProfiles()
+    {
+        return $this->hasMany(PlayerGameProfile::class);
+    }
+
+    public function captainOf()
+    {
+        return $this->hasMany(Team::class, 'captain_id');
+    }
+
+    public function teamMemberships()
+    {
+        return $this->hasMany(TeamMember::class);
+    }
+
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'invited_user_id');
+    }
+
+    public function createdTournaments()
+    {
+        return $this->hasMany(Tournament::class, 'created_by');
+    }
+
+    public function raisedDisputes()
+    {
+        return $this->hasMany(Dispute::class, 'raised_by');
+    }
+
+    public function resolvedDisputes()
+    {
+        return $this->hasMany(Dispute::class, 'resolved_by');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function currentTeam(): ?Team
+    {
+        $teamId = TeamMember::where('user_id', $this->id)->latest()->value('team_id')
+            ?? Team::where('captain_id', $this->id)->latest()->value('id');
+        return $teamId ? Team::with('members.user')->find($teamId) : null;
+    }
+
+    public function isCaptain(): bool
+    {
+        return Team::where('captain_id', $this->id)->exists();
+    }
 }
