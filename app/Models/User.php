@@ -7,13 +7,27 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            if (!ProfilePlayer::where('user_id', $user->id)->exists()) {
+                ProfilePlayer::create([
+                    'user_id'        => $user->id,
+                    'total_matches'  => 0,
+                    'win_rate'       => 0,
+                    'total_trophies' => 0,
+                    'status'         => 'FREE',
+                ]);
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -125,5 +139,33 @@ class User extends Authenticatable implements JWTSubject
     public function isCaptain(): bool
     {
         return Team::where('captain_id', $this->id)->exists();
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role?->name === $role;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role?->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->role?->permissions->contains('name', $permission) ?? false;
+    }
+
+    public function hasAnyPermission(array $permissions): bool
+    {
+        if ($this->role?->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->role?->permissions->whereIn('name', $permissions)->isNotEmpty() ?? false;
+    }
+
+    public function getAllPermissions(): \Illuminate\Support\Collection
+    {
+        return $this->role?->permissions ?? collect();
     }
 }

@@ -19,11 +19,25 @@ class ProfilePlayer extends Model
         'status',
     ];
 
-    /**
-     * Get the user that owns the profile.
-     */
+    protected $casts = [
+        'total_matches'  => 'integer',
+        'total_trophies' => 'integer',
+        'win_rate'       => 'float',
+        'status'         => 'string',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'FREE');
+    }
+
+    public function getFormattedWinRateAttribute(): string
+    {
+        return number_format($this->win_rate, 2) . '%';
     }
 }

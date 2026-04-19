@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('total_matches')->default(0);
             $table->float('win_rate')->default(0);
             $table->integer('total_trophies')->default(0);
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
+            $table->enum('status', ['FREE', 'IN_TEAM'])->default('FREE');
             $table->timestamps();
         });
     }
