@@ -11,7 +11,6 @@ class PlayerGameProfile extends Model
 
     protected $fillable = [
         'user_id',
-        'game_id',
         'ign',
         'rank',
         'game_stats',
