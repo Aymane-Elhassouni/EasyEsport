@@ -4,6 +4,10 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExtractJwtFromCookie
@@ -11,28 +15,19 @@ class ExtractJwtFromCookie
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->cookie('token');
-        \Illuminate\Support\Facades\Log::info('JwtBridge: Cookie token is: ' . ($token ? 'Present' : 'Missing'));
 
         if ($token) {
-            $request->headers->set('Authorization', 'Bearer ' . $token);
-            
             try {
-                \PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::setToken($token);
-                if ($user = \PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::authenticate()) {
-                    \Illuminate\Support\Facades\Log::info('JwtBridge: User authenticated: ' . $user->email);
-                    \Illuminate\Support\Facades\Auth::login($user);
+                $user = JWTAuth::setToken($token)->authenticate();
+
+                if ($user) {
+                    Auth::guard('web')->login($user);
+                    View::share('authUser', $user);
                 }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('JwtBridge: Exception - ' . $e->getMessage());
+            } catch (JWTException) {
+                // Token invalide — on laisse passer sans user
             }
         }
-
-        // If not logged in, bounce them to login
-        if (!\Illuminate\Support\Facades\Auth::check()) {
-            \Illuminate\Support\Facades\Log::info('JwtBridge: Unauthorized access. Redirecting to login.');
-            return redirect()->route('login');
-        }
-
 
         return $next($request);
     }
