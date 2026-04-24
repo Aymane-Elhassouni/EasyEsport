@@ -5,14 +5,16 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected static function booted(): void
     {
@@ -41,6 +43,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'logo',
         'role_id',
+        'is_banned',
     ];
 
     /**
@@ -64,6 +67,15 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->logo) {
+            return config('filesystems.disks.s3.url') . '/' . $this->logo;
+        }
+
+        return 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($this->firstname ?? 'player');
     }
 
     public function getJWTIdentifier()
