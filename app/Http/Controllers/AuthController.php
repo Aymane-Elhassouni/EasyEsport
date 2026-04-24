@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Services\Interfaces\AuthServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    protected $authService;
-
-    public function __construct(AuthServiceInterface $authService)
-    {
-        $this->authService = $authService;
-    }
+    public function __construct(
+        protected AuthServiceInterface $authService
+    ) {}
 
     public function showRegister()
     {
@@ -25,45 +25,67 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $data = $request->validate([
-            'firstname' => 'required|string|max:255',
-            'lastname'  => 'required|string|max:255',
-            'email'     => 'required|string|email|max:255|unique:users',
-            'password'  => 'required|string|min:8|confirmed',
-        ], [
-            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
-        ]);
+        $user  = $this->authService->register($request->validated());
+        $token = JWTAuth::fromUser($user);
 
-        $user = $this->authService->register($data);
+        // Connexion au guard web pour Blade (@auth)
+        Auth::guard('web')->login($user);
 
-        // Auto-login after registration
-        $token = \PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::fromUser($user);
-
-        return redirect()->route('dashboard')->withCookie(cookie('token', $token, 60, null, null, false, true));
+        return $this->handleRedirectWithCookie($user, $token);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ]);
-
-        $token = $this->authService->login($credentials);
+        $token = $this->authService->login($request->validated());
 
         if (!$token) {
-            return back()->withErrors(['email' => 'L\'adresse e-mail ou le mot de passe est incorrect.']);
+            return back()->withErrors([
+                'email' => 'L\'adresse e-mail ou le mot de passe est incorrect.',
+            ]);
         }
 
-        return redirect()->route('dashboard')->withCookie(cookie('token', $token, 60, null, null, false, true));
+        // Récupérer l'utilisateur via le token JWT
+        $user = JWTAuth::setToken($token)->authenticate();
+        
+        // Ponter vers la session web pour les vues
+        Auth::guard('web')->login($user);
+
+        return $this->handleRedirectWithCookie($user, $token);
     }
 
-    public function logout()
+    /**
+     * Centralisation de la logique de redirection par rôle.
+     */
+    protected function handleRedirectWithCookie($user, $token)
     {
-        Auth::guard('api')->logout();
+        $user->loadMissing('role');
 
-        return redirect()->route('login')->withoutCookie('token');
+        if ($user->hasRole('super_admin')) {
+            $url = route('admin.system.dashboard');
+        } elseif ($user->hasRole('admin')) {
+            $url = route('admin.dashboard');
+        } else {
+            $url = route('player.dashboard');
+        }
+
+        return redirect($url)
+            ->withCookie($this->authService->makeTokenCookie($token));
+    }
+
+    public function logout(Request $request)
+    {
+        try { $this->authService->logout(); } catch (\Throwable) {}
+
+        Auth::guard('web')->logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return redirect()->route('login')
+            ->withCookie(cookie()->forget('token'));
     }
 }
