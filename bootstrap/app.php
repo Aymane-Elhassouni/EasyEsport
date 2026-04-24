@@ -11,10 +11,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [
-            \App\Http\Middleware\ExtractJwtFromCookie::class,
+        $middleware->alias([
+            'jwt.bridge'  => \App\Http\Middleware\ExtractJwtFromCookie::class,
+            'permission'  => \App\Http\Middleware\CheckPermission::class,
+            'role'        => \App\Http\Middleware\CheckRole::class,
+            'role.redirect' => \App\Http\Middleware\RoleRedirect::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            '/logout',
         ]);
     })
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
