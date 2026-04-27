@@ -36,11 +36,7 @@ class ProfileService implements ProfileServiceInterface
     {
         $profile = $this->getAuthProfile($userId);
         
-        $profile->update(array_filter([
-            'bio'            => $data['bio'] ?? null,
-            'total_matches'  => $data['total_matches'] ?? null,
-            'total_trophies' => $data['total_trophies'] ?? null,
-        ], fn($v) => !is_null($v)));
+        $profile->update(['bio' => $data['bio'] ?? null]);
         
         return $profile;
     }
