@@ -37,7 +37,12 @@ class ProfileController extends Controller
         try {
             $data = $this->profileService->getFullProfileData(Auth::id());
         } catch (ModelNotFoundException) {
-            abort(404, 'Profile not found.');
+            // create profile if not exists
+            \App\Models\ProfilePlayer::firstOrCreate(
+                ['user_id' => Auth::id()],
+                ['total_matches' => 0, 'win_rate' => 0, 'total_trophies' => 0, 'status' => 'active']
+            );
+            $data = $this->profileService->getFullProfileData(Auth::id());
         }
 
         return view('pages.player.profile', compact('data'));

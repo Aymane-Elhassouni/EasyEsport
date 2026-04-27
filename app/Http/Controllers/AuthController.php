@@ -51,6 +51,7 @@ class AuthController extends Controller
         
         // Ponter vers la session web pour les vues
         Auth::guard('web')->login($user);
+        \Illuminate\Support\Facades\Cache::put('user_online_' . $user->id, true, now()->addMinutes(5));
 
         return $this->handleRedirectWithCookie($user, $token);
     }
