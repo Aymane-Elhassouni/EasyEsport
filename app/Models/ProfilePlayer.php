@@ -23,7 +23,6 @@ class ProfilePlayer extends Model
         'total_matches'  => 'integer',
         'total_trophies' => 'integer',
         'win_rate'       => 'float',
-        'status'         => 'string',
     ];
 
     public function user(): BelongsTo
@@ -33,7 +32,7 @@ class ProfilePlayer extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'FREE');
+        return $query->where('status', 'active');
     }
 
     public function getFormattedWinRateAttribute(): string

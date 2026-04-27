@@ -13,11 +13,13 @@ class Invitation extends Model
         'team_id',
         'invited_user_id',
         'status',
+        'type',
         'sent_at',
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     public function team()

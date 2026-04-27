@@ -25,7 +25,7 @@ class User extends Authenticatable implements JWTSubject
                     'total_matches'  => 0,
                     'win_rate'       => 0,
                     'total_trophies' => 0,
-                    'status'         => 'FREE',
+                    'status'         => 'active',
                 ]);
             }
         });
@@ -146,6 +146,11 @@ class User extends Authenticatable implements JWTSubject
         $teamId = TeamMember::where('user_id', $this->id)->latest()->value('team_id')
             ?? Team::where('captain_id', $this->id)->latest()->value('id');
         return $teamId ? Team::with('members.user')->find($teamId) : null;
+    }
+
+    public function isOnline(): bool
+    {
+        return \Illuminate\Support\Facades\Cache::has('user_online_' . $this->id);
     }
 
     public function isCaptain(): bool
