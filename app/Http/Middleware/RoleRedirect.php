@@ -16,7 +16,11 @@ class RoleRedirect
         if ($user && ($request->is('/') || $request->is('login') || $request->is('register'))) {
             $user->loadMissing('role');
 
-            if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
+            if ($user->hasRole('super_admin')) {
+                return redirect()->route('admin.system.dashboard');
+            }
+
+            if ($user->hasRole('admin')) {
                 return redirect()->route('admin.dashboard');
             }
 

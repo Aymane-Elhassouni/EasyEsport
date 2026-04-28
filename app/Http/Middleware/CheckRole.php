@@ -19,11 +19,6 @@ class CheckRole
 
         $user->loadMissing('role');
 
-        // super_admin bypasses only if the route doesn't explicitly exclude them
-        if ($user->hasRole('super_admin') && !in_array('player', $roles) && !in_array('captain', $roles)) {
-            return $next($request);
-        }
-
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return $next($request);
@@ -31,7 +26,11 @@ class CheckRole
         }
 
         // Wrong role — redirect to own dashboard
-        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+        if ($user->hasRole('super_admin')) {
+            return redirect()->route('admin.system.dashboard');
+        }
+
+        if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
 
