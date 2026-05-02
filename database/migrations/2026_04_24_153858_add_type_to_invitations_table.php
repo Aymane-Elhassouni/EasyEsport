@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('invitations', function (Blueprint $table) {
-            $table->enum('type', ['invitation', 'join_request'])->default('invitation')->after('status');
+            $table->enum('type', ['invitation', 'join_request', 'captain_transfer'])->default('invitation')->after('status')->comment('invitation: sent by captain to join team');
         });
     }
 
