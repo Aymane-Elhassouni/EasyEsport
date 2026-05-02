@@ -9,7 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['bio', 'handle', 'trophies', 'wins', 'win_rate']);
+            $columns = ['bio', 'handle', 'trophies', 'wins', 'win_rate'];
+            $existing = array_filter($columns, fn($col) => Schema::hasColumn('users', $col));
+            if (!empty($existing)) {
+                $table->dropColumn(array_values($existing));
+            }
         });
     }
 
