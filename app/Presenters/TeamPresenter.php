@@ -2,30 +2,70 @@
 
 namespace App\Presenters;
 
-use App\Models\Team;
+use App\DTOs\TeamDTO;
 
 class TeamPresenter
 {
-    /**
-     * Format team data for the management view.
-     */
-    public function present(Team $team): object
-    {
-        // Simple mock calculations for now, should be replaced with real Match queries later
-        $winRate = 75.5; // Example
-        $earnings = 12500;
-        $elo = 2840;
+    public function __construct(
+        protected TeamDTO $team
+    ) {}
 
-        return (object) [
-            'id'            => $team->id,
-            'name'          => $team->name,
-            'logo'          => $team->logo,
-            'captain_id'    => $team->captain_id,
-            'winRate'       => number_format($winRate, 1) . '%',
-            'earnings'      => '$' . number_format($earnings),
-            'elo'           => number_format($elo),
-            'rosterCount'   => $team->members->count(),
-            'maxSlots'      => 6, // Esport standard
-        ];
+    public static function make(\App\Models\Team $team): self
+    {
+        return new self(TeamDTO::fromModel($team));
+    }
+
+    public function present(\App\Models\Team $team): self
+    {
+        return self::make($team);
+    }
+
+    public function getStatusBadgeClass(): string
+    {
+        return $this->team->membersCount < 6 ? 'text-success' : 'text-danger';
+    }
+
+    public function getFormattedMembersCount(): string
+    {
+        return "{$this->team->membersCount}/6 Members";
+    }
+
+    public function canJoin(): bool
+    {
+        return $this->team->membersCount < 6;
+    }
+
+    public function hasPendingJoinRequest(): bool
+    {
+        if (!auth()->check()) {
+            return false;
+        }
+
+        return \App\Models\Invitation::where('team_id', $this->team->id)
+            ->where('invited_user_id', auth()->id())
+            ->where('type', 'join_request')
+            ->where('status', 'pending')
+            ->exists();
+    }
+
+    public function getRouteKey()
+    {
+        return $this->team->slug;
+    }
+
+    public function __toString()
+    {
+        return (string) $this->getRouteKey();
+    }
+
+    public function __get($name)
+    {
+        $camelName = \Illuminate\Support\Str::camel($name);
+        
+        if (property_exists($this->team, $camelName)) {
+            return $this->team->$camelName;
+        }
+
+        return $this->team->$name;
     }
 }

@@ -5,10 +5,16 @@
     <div class="flex flex-col md:flex-row items-center gap-10 relative z-10">
         <div class="relative group">
             <div class="w-32 h-32 bg-dark-bg rounded-[2.5rem] p-4 border border-white/10 shadow-2xl relative z-10">
-                <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ urlencode($team->name) }}" class="w-full h-full opacity-80" alt="team logo">
+                <img src="{{ $team->logo_url }}" class="w-full h-full object-cover rounded-[2rem]" alt="team logo">
             </div>
             @if(Auth::id() === $team->captain_id)
-                <button class="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-neon-primary hover:scale-110 transition-transform z-20">
+                <form action="{{ route('teams.update', $team->id) }}" method="POST" enctype="multipart/form-data" id="logo-form">
+                    @csrf @method('PATCH')
+                    <input type="file" name="logo" id="logo-input" class="hidden" accept="image/*"
+                        onchange="document.getElementById('logo-form').submit()">
+                </form>
+                <button onclick="document.getElementById('logo-input').click()" type="button"
+                    class="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-neon-primary hover:scale-110 transition-transform z-20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                 </button>
             @endif

@@ -5,6 +5,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @auth<meta name="user-id" content="{{ auth()->id() }}">@endauth
     <title>{{ $title ?? 'Dashboard' }} - {{ config('app.name', 'EasyEsport') }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +22,9 @@
 
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <x-sidebar />
+        @auth
+            <x-sidebar />
+        @endauth
 
         <!-- Main Wrapper -->
         <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
@@ -62,5 +66,6 @@
         document.addEventListener('DOMContentLoaded', () => Swal.fire({ icon: 'error', title: 'Validation Error', html: '<ul class="text-left text-sm space-y-1">{!! implode('', array_map(fn($e) => '<li>• ' . e($e) . '</li>', $errors->all())) !!}</ul>', background: '#1e293b', color: '#f1f5f9', iconColor: '#ef4444', confirmButtonColor: '#6366f1', confirmButtonText: 'Fix it' }));
     </script>
     @endif
+    @stack('scripts')
 </body>
 </html>

@@ -77,55 +77,108 @@ document.addEventListener('alpine:init', () => {
         }
     });
 
-    // --- OCR SIMULATION COMPONENT ---
+    // --- OCR SCANNER COMPONENT ---
     Alpine.data('ocrScanner', () => ({
         isScanning: false,
         isComplete: false,
         progress: 0,
         result: null,
         previewUrl: null,
+        file: null,
 
         handleFile(e) {
             const file = e.type === 'drop' ? e.dataTransfer.files[0] : e.target.files[0];
             if (file && file.type.startsWith('image/')) {
+                this.file = file;
                 const reader = new FileReader();
                 reader.onload = (e) => this.previewUrl = e.target.result;
                 reader.readAsDataURL(file);
-                this.startScan();
             }
         },
 
-        startScan() {
+        async startScan() {
+            if (!this.file) return;
+
             this.isScanning = true;
             this.progress = 0;
             this.isComplete = false;
             
+            // Artificial progress for better UX
             let interval = setInterval(() => {
-                this.progress += Math.random() * 20;
-                if (this.progress >= 100) {
-                    this.progress = 100;
-                    clearInterval(interval);
-                    setTimeout(() => this.finalizeScan(), 500);
+                if (this.progress < 90) {
+                    this.progress += Math.random() * 15;
                 }
-            }, 400);
+            }, 300);
+
+            try {
+                const formData = new FormData();
+                formData.append('image', this.file);
+
+                const response = await fetch('/scan-ocr', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                clearInterval(interval);
+                this.progress = 100;
+
+                if (data.success) {
+                    setTimeout(() => {
+                        this.isScanning = false;
+                        this.isComplete = true;
+                        this.result = data.data;
+                        Alpine.store('global').notify('OCR Analysis Complete!', 'success');
+                    }, 500);
+                } else {
+                    throw new Error(data.message || 'Scan failed');
+                }
+            } catch (error) {
+                clearInterval(interval);
+                this.isScanning = false;
+                Alpine.store('global').notify(error.message, 'error');
+            }
         },
 
-        finalizeScan() {
-            this.isScanning = false;
-            this.isComplete = true;
-            this.result = {
-                playerName: 'Alex_Pistol',
-                rank: 'Diamond III',
-                stats: '15 Kills / 3 Deaths',
-                confidence: '98.5%'
-            };
-            Alpine.store('global').notify('OCR Analysis Complete!', 'success');
+        async confirmSave() {
+            if (!this.result) return;
+
+            try {
+                const response = await fetch('/save-ocr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        rank: this.result.rank,
+                        stats: this.result.stats
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Alpine.store('global').notify(data.message, 'success');
+                    this.reset();
+                } else {
+                    throw new Error(data.message || 'Save failed');
+                }
+            } catch (error) {
+                Alpine.store('global').notify(error.message, 'error');
+            }
         },
 
         reset() {
             this.previewUrl = null;
             this.isComplete = false;
             this.result = null;
+            this.file = null;
+            this.progress = 0;
         }
     }));
 });

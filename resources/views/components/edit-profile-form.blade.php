@@ -15,44 +15,14 @@
         @csrf
         @method('PATCH')
 
-        {{-- Bio --}}
         <div>
             <label class="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">Bio</label>
             <textarea name="bio" rows="4" maxlength="1000"
                       placeholder="Tell the community about yourself..."
-                      class="w-full bg-dark-surface border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all resize-none placeholder-gray-500">{{ old('bio', Auth::user()->bio ?? '') }}</textarea>
+                      class="w-full bg-dark-surface border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all resize-none placeholder-gray-500">{{ old('bio', Auth::user()->profile->bio ?? '') }}</textarea>
             <p class="text-[10px] opacity-40 mt-1 text-right">max 1000 characters</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {{-- total_trophies --}}
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">Total Trophies</label>
-                <input type="number" name="total_trophies" min="0"
-                       value="{{ old('total_trophies', Auth::user()->total_trophies ?? 0) }}"
-                       class="w-full bg-dark-surface border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all">
-            </div>
-            
-            {{-- total_matches --}}
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">total_matches</label>
-                <input type="number" name="total_matches" min="0"
-                       value="{{ old('total_matches', Auth::user()->total_matches ?? 0) }}"
-                       class="w-full bg-dark-surface border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all">
-            </div>
-
-            {{-- Win Rate (readonly) --}}
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">
-                    Win Rate
-                    <span class="ml-2 px-2 py-0.5 rounded bg-white/5 text-[10px] normal-case tracking-normal opacity-50">Calculated automatically</span>
-                </label>
-                <input type="text" value="{{ $data->winRate ?? Auth::user()->win_rate ?? 0 }}%" readonly
-                       class="w-full bg-dark-surface opacity-50 border border-white/5 rounded-xl px-4 py-3 text-sm cursor-not-allowed">
-            </div>
-        </div>
-
-        {{-- Submit --}}
         <div class="flex justify-end pt-2">
             <button type="submit"
                     class="px-8 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:shadow-neon-primary transition-all duration-300 hover:scale-105 active:scale-95">

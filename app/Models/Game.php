@@ -15,6 +15,7 @@ class Game extends Model
         'logo',
         'banner',
         'players_per_team',
+        'type',
     ];
 
     public function tournaments()

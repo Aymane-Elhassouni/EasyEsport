@@ -13,7 +13,7 @@ class TeamController extends Controller
         protected TeamServiceInterface $teamService
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
         $currentTeam = $this->teamService->getCurrentTeamForUser(Auth::id());
 
@@ -21,7 +21,18 @@ class TeamController extends Controller
             return redirect()->route('teams.manage', $currentTeam->slug);
         }
 
-        $teams = Team::withCount('members')->with('invitations')->latest()->get();
+        $paginator = $this->teamService->getPaginatedTeams($request->input('q'));
+        
+        $paginator->getCollection()->transform(function ($dto) {
+            return new \App\Presenters\TeamPresenter($dto);
+        });
+
+        $teams = $paginator;
+
+        if ($request->ajax()) {
+            return view('pages.teams.partials.team-grid', compact('teams'))->render();
+        }
+
         return view('pages.teams.index', compact('teams'));
     }
 
@@ -90,6 +101,17 @@ class TeamController extends Controller
         return back()->with('success', 'Team updated successfully.');
     }
 
+    public function transferCaptain(Request $request, Team $team)
+    {
+        $request->validate(['user_id' => 'required|integer|exists:users,id']);
+
+        if (Auth::id() !== $team->captain_id) abort(403);
+
+        $this->teamService->transferCaptaincy($team->id, $request->user_id, Auth::id());
+
+        return back()->with('success', 'Captain transfer invitation sent.');
+    }
+
     public function kickMember(Team $team, int $userId)
     {
         $this->teamService->kickMember($team->id, $userId);
@@ -142,6 +164,19 @@ class TeamController extends Controller
             'email'  => $u->email,
             'avatar' => $u->avatar_url,
         ]));
+    }
+
+    public function leave(Team $team)
+    {
+        $userId = Auth::id();
+
+        if ($team->captain_id === $userId) {
+            return back()->withErrors(['error' => 'Transfer captaincy before leaving.']);
+        }
+
+        $this->teamService->leaveTeam($team->id, $userId);
+
+        return redirect()->route('teams')->with('success', 'You have left the team.');
     }
 
     public function handleInvitation(\App\Models\Invitation $invitation, Request $request)

@@ -39,4 +39,46 @@ class AdminDashboardService
                 ->get(),
         ];
     }
+
+    /**
+     * Récupère les tournois créés par l'utilisateur connecté.
+     */
+    public function getMyTournaments(int $userId)
+    {
+        return Tournament::with(['game'])
+            ->withCount(['registrations' => fn($q) => $q->where('status', 'approved')])
+            ->where('created_by', $userId)
+            ->latest()
+            ->get();
+    }
+
+    public function getAllTeams()
+    {
+        return Team::withCount('members')->with('captain')->latest()->get();
+    }
+
+    public function deleteTeam(Team $team): void
+    {
+        $team->delete();
+    }
+
+    public function getSystemLogs(int $limit = 100): array
+    {
+        $logFile = storage_path('logs/laravel.log');
+        $logs    = [];
+
+        if (!file_exists($logFile)) return $logs;
+
+        $lines   = array_reverse(file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
+        $pattern = '/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] (\w+)\.(\w+): (.+)/';
+
+        foreach ($lines as $line) {
+            if (preg_match($pattern, $line, $m)) {
+                $logs[] = ['date' => $m[1], 'env' => $m[2], 'level' => strtolower($m[3]), 'message' => $m[4]];
+                if (count($logs) >= $limit) break;
+            }
+        }
+
+        return $logs;
+    }
 }

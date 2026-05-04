@@ -12,8 +12,25 @@ use App\Services\Interfaces\TeamServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
+use App\DAOs\TeamDAO;
+
 class TeamService implements TeamServiceInterface
 {
+    public function __construct(
+        protected TeamDAO $teamDao
+    ) {}
+
+    public function getPaginatedTeams(?string $query = null, int $perPage = 12)
+    {
+        $paginator = $this->teamDao->getPaginatedTeams($query, $perPage);
+        
+        $paginator->getCollection()->transform(function ($team) {
+            return \App\DTOs\TeamDTO::fromModel($team);
+        });
+
+        return $paginator;
+    }
+
     public function invitePlayer(int $teamId, string $email, int $captainId): void
     {
         $team = Team::findOrFail($teamId);
@@ -97,16 +114,13 @@ class TeamService implements TeamServiceInterface
         });
     }
 
-    public function getCurrentTeamForUser(int $userId): ?Team
+    public function getCurrentTeamForUser(?int $userId): ?\App\DTOs\TeamDTO
     {
-        return Team::with(['members'])
-            ->where(function ($q) use ($userId) {
-                $q->where('captain_id', $userId)
-                  ->orWhereHas('members', fn($q) => $q->where('user_id', $userId));
-            })
-            ->withCount('members')
-            ->latest('id')
-            ->first();
+        if (!$userId) return null;
+
+        $team = $this->teamDao->findByUserId($userId);
+
+        return $team ? \App\DTOs\TeamDTO::fromModel($team) : null;
     }
 
     public function getManageableTeam(int $teamId): Team
@@ -136,17 +150,79 @@ class TeamService implements TeamServiceInterface
         return $deleted;
     }
 
+    public function transferCaptaincy(int $teamId, int $newCaptainId, int $currentCaptainId): void
+    {
+        $team = Team::findOrFail($teamId);
+        $newCaptain = User::findOrFail($newCaptainId);
+
+        Invitation::updateOrCreate(
+            ['team_id' => $teamId, 'invited_user_id' => $newCaptainId, 'type' => 'captain_transfer'],
+            ['status' => 'pending', 'sent_at' => now()]
+        );
+
+        Notification::create([
+            'user_id'    => $newCaptainId,
+            'creator_id' => $currentCaptainId,
+            'team_id'    => $teamId,
+            'title'      => 'Captain Transfer',
+            'message'    => "You have been offered the captaincy of {$team->name}.",
+            'action_url' => route('invitations'),
+            'icon'       => '👑',
+            'type'       => 'captain_transfer',
+        ]);
+    }
+
+    public function leaveTeam(int $teamId, int $userId): void
+    {
+        TeamMember::where('team_id', $teamId)->where('user_id', $userId)->delete();
+    }
+
     public function handleInvitation(int $invitationId, string $status): bool
     {
         $invitation = Invitation::findOrFail($invitationId);
 
         if ($status === 'accepted') {
             DB::transaction(function () use ($invitation) {
-                TeamMember::create([
-                    'team_id'   => $invitation->team_id,
-                    'user_id'   => $invitation->invited_user_id,
-                    'joined_at' => now(),
-                ]);
+                // Ensure user is removed from all other memberships before joining new team
+                TeamMember::where('user_id', $invitation->invited_user_id)->delete();
+
+                if ($invitation->type === 'captain_transfer') {
+                    $team = Team::findOrFail($invitation->team_id);
+                    $oldCaptainId = $team->captain_id;
+
+                    // If user was already a captain of DIFFERENT team, they must vacate that first
+                    $existingCaptaincy = Team::where('captain_id', $invitation->invited_user_id)
+                        ->where('id', '!=', $team->id)
+                        ->first();
+                    
+                    if ($existingCaptaincy) {
+                        throw new \Exception("You are already a captain of team {$existingCaptaincy->name}. You must transfer your captaincy first.");
+                    }
+
+                    $team->update(['captain_id' => $invitation->invited_user_id]);
+
+                    $captainRole = \App\Models\Role::where('name', 'captain')->firstOrFail();
+                    $playerRole  = \App\Models\Role::where('name', 'player')->firstOrFail();
+
+                    User::where('id', $invitation->invited_user_id)->update(['role_id' => $captainRole->id]);
+                    User::where('id', $oldCaptainId)->update(['role_id' => $playerRole->id]);
+
+                    TeamMember::updateOrCreate(
+                        ['team_id' => $team->id, 'user_id' => $oldCaptainId],
+                        ['joined_at' => now()]
+                    );
+                } else {
+                    // Check if they are already a captain elsewhere before joining as a member
+                    if (Team::where('captain_id', $invitation->invited_user_id)->exists()) {
+                        throw new \Exception("You are a captain of another team. You must transfer your captaincy before joining another team as a member.");
+                    }
+
+                    TeamMember::create([
+                        'team_id'   => $invitation->team_id,
+                        'user_id'   => $invitation->invited_user_id,
+                        'joined_at' => now(),
+                    ]);
+                }
                 $invitation->update(['status' => 'accepted']);
             });
         } else {

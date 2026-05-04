@@ -29,10 +29,11 @@
             <x-ui.card title="Quick Actions" icon='<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>'>
                 <div class="space-y-3">
                     @foreach([
-                        ['label' => 'Manage Tournaments', 'route' => 'tournaments',   'variant' => 'primary'],
-                        ['label' => 'Manage Teams',       'route' => 'teams',         'variant' => 'secondary'],
-                        ['label' => 'Manage Disputes',    'route' => 'admin.disputes','variant' => 'ghost'],
-                        ['label' => 'OCR Monitor',        'route' => 'admin.ocr',     'variant' => 'ghost'],
+                        ['label' => 'Manage Tournaments', 'route' => 'tournaments',        'variant' => 'primary'],
+                        ['label' => 'Manage Teams',       'route' => 'admin.teams',        'variant' => 'secondary'],
+                        ['label' => 'Registrations',      'route' => 'admin.registrations','variant' => 'ghost'],
+                        ['label' => 'Manage Disputes',    'route' => 'admin.disputes',     'variant' => 'ghost'],
+                        ['label' => 'OCR Monitor',        'route' => 'admin.ocr',          'variant' => 'ghost'],
                     ] as $action)
                         <x-ui.button href="{{ route($action['route']) }}"
                                      variant="{{ $action['variant'] }}"
@@ -42,6 +43,8 @@
                     @endforeach
                 </div>
             </x-ui.card>
+
+            @include('pages.admin.partials.my-tournaments')
         </div>
 
     </div>

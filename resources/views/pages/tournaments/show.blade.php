@@ -62,7 +62,7 @@
         <div x-show="tab === 'rules'" x-transition>
             <div class="max-w-3xl space-y-4">
                 @foreach([
-                    'Format'     => 'Single elimination, Best of 3 (Finals Bo5).',
+                    'Format'     => $tournament->format_label . ', Best of 3 (Finals Bo5).',
                     'Fair Play'  => 'Anti-cheat mandatory. OCR validation required for all matches.',
                     'Scheduling' => 'All matches must be played within 48h of round opening.',
                     'Disputes'   => 'Arbitrator\'s decision is final. OCR screenshots must be unedited.',

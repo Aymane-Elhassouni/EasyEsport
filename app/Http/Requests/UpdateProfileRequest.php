@@ -14,9 +14,7 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'bio'            => ['nullable', 'string', 'max:1000'],
-            'total_matches'  => ['nullable', 'integer', 'min:0'],
-            'total_trophies' => ['nullable', 'integer', 'min:0'],
+            'bio' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

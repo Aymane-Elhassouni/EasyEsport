@@ -21,7 +21,7 @@ class ExtractJwtFromCookie
             try {
                 $user = JWTAuth::setToken($token)->authenticate();
 
-                if ($user) {
+                if ($user && (!Auth::check() || Auth::id() !== $user->id)) {
                     Auth::guard('web')->login($user);
                     View::share('authUser', $user);
                     Cache::put('user_online_' . $user->id, true, now()->addMinutes(2));

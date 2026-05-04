@@ -1,7 +1,7 @@
 @props([
     'title'  => null,
-    'icon'   => null,   {{-- SVG path string --}}
-    'badge'  => null,   {{-- small badge text --}}
+    'icon'   => null,   
+    'badge'  => null,  
     'noPad'  => false,
 ])
 

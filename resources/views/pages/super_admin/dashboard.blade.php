@@ -59,8 +59,8 @@
             <x-ui.card title="Quick Actions" icon='<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>'>
                 <div class="space-y-3">
                     @foreach([
-                        ['label' => 'Tournaments', 'route' => 'tournaments', 'variant' => 'primary'],
-                        ['label' => 'Teams',       'route' => 'teams',       'variant' => 'secondary'],
+                        ['label' => 'Tournaments', 'route' => 'tournaments',  'variant' => 'primary'],
+                        ['label' => 'Teams',       'route' => 'admin.teams',  'variant' => 'secondary'],
                     ] as $action)
                         <x-ui.button href="{{ route($action['route']) }}"
                                      variant="{{ $action['variant'] }}"

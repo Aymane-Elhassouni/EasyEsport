@@ -63,7 +63,7 @@
                     <p class="text-xl font-bold font-display">Data Successfully Extracted</p>
                     <p class="text-xs font-bold opacity-60 uppercase tracking-widest" x-text="`Confidence: ${result?.confidence}`"></p>
                 </div>
-                <button @click="$store.global.notify('Match verified and saved!', 'success'); reset()" class="btn-primary w-full md:w-auto">Confirm & Save</button>
+                <button @click="confirmSave()" class="btn-primary w-full md:w-auto">Confirm & Save</button>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">

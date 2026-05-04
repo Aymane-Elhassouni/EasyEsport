@@ -50,6 +50,21 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\AdminDashboardService::class,
             \App\Services\AdminDashboardService::class
         );
+
+        $this->app->bind(
+            \App\DAO\Interfaces\AnnouncementDAOInterface::class,
+            \App\DAO\Eloquent\EloquentAnnouncementDAO::class
+        );
+
+        $this->app->bind(
+            \App\Services\Interfaces\AnnouncementServiceInterface::class,
+            \App\Services\AnnouncementService::class
+        );
+
+        $this->app->bind(
+            \App\Services\Interfaces\MatchServiceInterface::class,
+            \App\Services\MatchService::class
+        );
     }
 
     /**
@@ -57,6 +72,37 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\View::composer('components.sidebar', function ($view) {
+            $user = auth()->user();
+
+            $teamsRoute      = route('teams');
+            $dashboardRoute  = route('home');
+            $dashboardActive = false;
+
+            $isAdmin    = $user->hasRole('admin') || $user->hasRole('super_admin');
+            $isPlayer   = $user->hasRole('player');
+            $isCaptain  = $user->hasRole('captain');
+
+            if ($user->hasRole('captain')) {
+                $team = $user->captainOf()->latest()->first();
+                if ($team) $teamsRoute = route('teams.manage', $team->slug);
+            } elseif ($user->hasRole('player')) {
+                $membership = $user->teamMemberships()->with('team')->latest()->first();
+                if ($membership) $teamsRoute = route('teams.manage', $membership->team->slug);
+            }
+
+            if ($user->hasRole('super_admin')) {
+                $dashboardRoute  = route('admin.system.dashboard');
+                $dashboardActive = request()->routeIs('admin.system.dashboard');
+            } elseif ($user->hasRole('admin')) {
+                $dashboardRoute  = route('admin.dashboard');
+                $dashboardActive = request()->routeIs('admin.dashboard');
+            } else {
+                $dashboardRoute  = route('player.dashboard');
+                $dashboardActive = request()->routeIs('player.dashboard');
+            }
+
+            $view->with(compact('teamsRoute', 'dashboardRoute', 'dashboardActive', 'isAdmin', 'isPlayer', 'isCaptain'));
+        });
     }
 }

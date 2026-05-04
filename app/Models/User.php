@@ -25,7 +25,7 @@ class User extends Authenticatable implements JWTSubject
                     'total_matches'  => 0,
                     'win_rate'       => 0,
                     'total_trophies' => 0,
-                    'status'         => 'active',
+                    'status'         => 'FREE',
                 ]);
             }
         });

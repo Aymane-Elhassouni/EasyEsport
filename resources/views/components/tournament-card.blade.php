@@ -1,8 +1,7 @@
 @props(['tournament'])
 
 @php
-    $presenter = new \App\Presenters\TournamentPresenter();
-    $data = $presenter->present($tournament);
+    $data = \App\Presenters\TournamentPresenter::make($tournament);
 @endphp
 
 <div class="glass p-8 rounded-[2.5rem] border border-white/5 group hover:border-primary/20 transition-all relative overflow-hidden">

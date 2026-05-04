@@ -19,18 +19,47 @@
             </button>
 
             <!-- Notifications -->
-            <div x-data="{ open: false }" class="relative">
+            <div x-data="{
+                open: false,
+                notifications: [],
+                unread: 0,
+                async load() {
+                    const res = await fetch('{{ route('notifications.dropdown') }}');
+                    const data = await res.json();
+                    this.notifications = data.notifications;
+                    this.unread = data.unread;
+                }
+            }" x-init="load()" class="relative">
                 <button @click="open = !open" class="p-2 rounded-xl text-gray-400 hover:text-primary hover:bg-primary/10 transition-all relative">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    <span class="absolute top-1.5 right-2 w-2 h-2 bg-danger rounded-full animate-pulse-soft border-2 border-light-bg dark:border-dark-bg"></span>
+                    <span x-show="unread > 0" data-notif-badge data-count="0" class="absolute top-1.5 right-2 w-2 h-2 bg-danger rounded-full animate-pulse-soft border-2 border-light-bg dark:border-dark-bg"></span>
                 </button>
                 
-                <div x-show="open" @click.outside="open = false" x-transition x-cloak class="absolute right-0 mt-3 w-72 glass rounded-2xl shadow-xl border border-white/10 overflow-hidden">
-                    <div class="p-4 border-b border-white/5 font-bold text-sm bg-black/5 dark:bg-white/5">
-                        Notifications
+                <div x-show="open" @click.outside="open = false" x-transition x-cloak class="absolute right-0 mt-3 w-80 glass rounded-2xl shadow-xl border border-white/10 overflow-hidden">
+                    <div class="p-4 border-b border-white/5 font-bold text-sm bg-black/5 dark:bg-white/5 flex items-center justify-between">
+                        <span>Notifications</span>
+                        <a href="{{ route('notifications.index') }}" class="text-xs text-primary font-bold hover:underline">View all</a>
                     </div>
-                    <div class="p-2 space-y-1">
-                        <div class="p-3 text-xs text-gray-500 text-center">No new notifications</div>
+                    <div class="max-h-80 overflow-y-auto divide-y divide-white/5" data-notif-list>
+                        <template x-if="notifications.length === 0">
+                            <div class="p-4 text-xs text-gray-500 text-center">No new notifications</div>
+                        </template>
+                        <template x-for="n in notifications" :key="n.id">
+                            <div class="flex items-start gap-3 p-4 hover:bg-white/5 transition-all">
+                                <a :href="n.action_url ?? '#'" class="flex items-start gap-3 flex-1 min-w-0">
+                                    <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-sm flex-shrink-0" x-text="n.icon ?? '🔔'"></div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-bold" x-text="n.title"></p>
+                                        <p class="text-xs opacity-50 truncate" x-text="n.message"></p>
+                                        <p class="text-[10px] opacity-30 mt-1" x-text="n.time"></p>
+                                    </div>
+                                </a>
+                                <button @click="fetch('/notifications/' + n.id, {method:'DELETE', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}'}}).then(() => { notifications = notifications.filter(x => x.id !== n.id); unread = notifications.filter(x => !x.is_read).length })"
+                                    class="text-white/20 hover:text-danger transition-colors flex-shrink-0 mt-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -42,7 +71,7 @@
                         <p class="text-sm font-bold truncate max-w-[120px]">{{ trim((Auth::user()->firstname ?? '') . ' ' . (Auth::user()->lastname ?? '')) ?: (Auth::user()->name ?? 'Player') }}</p>
                         <p class="text-[10px] text-primary font-bold tracking-widest uppercase">{{ Auth::user()->role?->name ?? 'Player' }}</p>
                     </div>
-                    <img src="{{ Auth::user()->avatar_url }}" class="w-10 h-10 rounded-xl bg-dark-bg ring-2 ring-primary/20 hover:ring-primary transition-all">
+                    <img src="{{ Auth::user()?->avatar_url ?? 'https://api.dicebear.com/7.x/identicon/svg?seed=guest' }}" class="w-10 h-10 rounded-xl bg-dark-bg ring-2 ring-primary/20 hover:ring-primary transition-all">
                 </button>
 
                 <div x-show="open" @click.outside="open = false" x-transition x-cloak class="absolute right-0 mt-4 w-48 glass rounded-2xl p-2 shadow-xl border border-white/10 z-[60]">

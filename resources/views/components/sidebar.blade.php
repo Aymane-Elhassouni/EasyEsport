@@ -18,14 +18,22 @@
             <div class="pb-2 px-4">
                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Main Menu</p>
             </div>
-            @php
-                $dashboardRoute = Auth::user()->hasRole('admin') || Auth::user()->hasRole('super_admin') 
-                    ? route('admin.dashboard') 
-                    : route('player.dashboard');
-            @endphp
-            <x-sidebar-link icon="layout" label="Dashboard" route="{{ $dashboardRoute }}" :active="request()->routeIs('admin.dashboard') || request()->routeIs('player.dashboard')" />
+            <x-sidebar-link icon="layout" label="Dashboard" route="{{ $dashboardRoute }}" :active="$dashboardActive" />
             <x-sidebar-link icon="trophy" label="Tournaments" route="{{ route('tournaments') }}" :active="request()->routeIs('tournaments*')" />
-            <x-sidebar-link icon="users" label="Teams" route="{{ route('teams') }}" :active="request()->routeIs('teams*')" />
+            @if(!$isAdmin)
+                <x-sidebar-link icon="users" label="Teams" route="{{ route('teams') }}" :active="request()->routeIs('teams*')" />
+            @endif
+            @if($isAdmin)
+                <x-sidebar-link icon="mail" label="Announcements" route="{{ route('admin.announcements') }}" :active="request()->routeIs('admin.announcements')" />
+            @endif
+            @if($isPlayer)
+                <x-sidebar-link icon="mail" label="Invitations" route="{{ route('invitations') }}" :active="request()->routeIs('invitations')" />
+            @endif
+            @if($isPlayer || $isCaptain)
+                <x-sidebar-link icon="bell" label="Notifications" route="{{ route('notifications.index') }}" :active="request()->routeIs('notifications.*')" />
+                <x-sidebar-link icon="mail" label="Announcements" route="{{ route('player.announcements') }}" :active="request()->routeIs('player.announcements')" />
+                <x-sidebar-link icon="trophy" label="My Applications" route="{{ route('player.applications') }}" :active="request()->routeIs('player.applications')" />
+            @endif
             
             <div class="pt-6 pb-2 px-4">
                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tools & Labs</p>

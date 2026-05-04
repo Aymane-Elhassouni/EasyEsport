@@ -13,17 +13,38 @@ class GameMatch extends Model
 
     protected $fillable = [
         'bracket_id',
+        'tournament_id',
+        'group_id',
         'team_a_id',
         'team_b_id',
+        'next_match_id',
+        'position',
+        'winner_id',
         'score_a',
         'score_b',
         'status',
+        'scheduled_at',
+        'team_a_screenshot',
+        'team_b_screenshot',
+        'ocr_confidence',
         'played_at',
     ];
 
+    public function group()
+    {
+        return $this->belongsTo(TournamentGroup::class, 'group_id');
+    }
+
     protected $casts = [
         'played_at' => 'datetime',
+        'scheduled_at' => 'datetime',
+        'ocr_confidence' => 'float',
     ];
+
+    public function tournament()
+    {
+        return $this->belongsTo(Tournament::class);
+    }
 
     public function bracket()
     {
@@ -38,6 +59,16 @@ class GameMatch extends Model
     public function teamB()
     {
         return $this->belongsTo(Team::class, 'team_b_id');
+    }
+
+    public function nextMatch()
+    {
+        return $this->belongsTo(GameMatch::class, 'next_match_id');
+    }
+
+    public function winner()
+    {
+        return $this->belongsTo(Team::class, 'winner_id');
     }
 
     public function ocrAnalysis()

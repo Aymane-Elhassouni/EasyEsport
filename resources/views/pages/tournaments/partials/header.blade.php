@@ -26,31 +26,111 @@
         </div>
 
         <div class="flex flex-col gap-4 items-center">
-            @if($tournament->status === 'pending')
-                @if($userTeam && Auth::id() === $userTeam->captain_id)
-                    <form action="{{ route('tournaments.register', $tournament->id) }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="team_id" value="{{ $userTeam->id }}">
-                        <button class="btn-primary shadow-neon-primary px-12 py-5 font-black tracking-[0.2em] text-xs transform hover:scale-110 transition-all uppercase">JOIN CHAMPIONSHIP</button>
-                    </form>
-                    <p class="text-[10px] font-bold opacity-30 uppercase tracking-widest">Registering as team: <span class="text-white">{{ $userTeam->name }}</span></p>
+            @auth
+                @if($tournament->status === 'Upcoming')
+                    @php
+                        $isFull = $tournament->registeredTeamsCount >= $tournament->maxTeams;
+                    @endphp
+
+                    @if($registrationStatus)
+                        @php
+                            $statusStyles = [
+                                'pending'  => ['bg-warning/10 border-warning/20 text-warning',  'REGISTRATION PENDING'],
+                                'approved' => ['bg-success/10 border-success/20 text-success',  'REGISTERED ✓'],
+                                'rejected' => ['bg-danger/10  border-danger/20  text-danger',   'REGISTRATION REJECTED'],
+                            ];
+                            [$style, $label] = $statusStyles[$registrationStatus] ?? $statusStyles['pending'];
+                        @endphp
+                        <div class="px-8 py-4 rounded-2xl border font-black tracking-[0.2em] text-xs uppercase {{ $style }}">
+                            {{ $label }}
+                        </div>
+                        <p class="text-[10px] font-bold opacity-30 uppercase tracking-widest">Team: <span class="text-white">{{ $userTeam?->name }}</span></p>
+
+                    @elseif(!$userTeam)
+                        <button disabled class="glass opacity-40 cursor-not-allowed px-10 py-4 font-black tracking-[0.2em] text-xs border border-white/10 uppercase rounded-2xl">
+                            YOU NEED A TEAM
+                        </button>
+
+                    @elseif(Auth::id() !== $userTeam->captain_id)
+                        <button disabled class="glass opacity-40 cursor-not-allowed px-10 py-4 font-black tracking-[0.2em] text-xs border border-white/10 uppercase rounded-2xl">
+                            ONLY CAPTAINS CAN REGISTER
+                        </button>
+
+                    @elseif($isFull)
+                        <button disabled class="glass opacity-40 cursor-not-allowed px-10 py-4 font-black tracking-[0.2em] text-xs border border-white/10 uppercase rounded-2xl">
+                            TOURNAMENT FULL
+                        </button>
+
+                    @else
+                        <form action="{{ route('tournaments.register', $tournament->slug) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="team_id" value="{{ $userTeam->id }}">
+                            <button class="btn-primary shadow-neon-primary px-12 py-5 font-black tracking-[0.2em] text-xs transform hover:scale-110 transition-all uppercase">
+                                JOIN CHAMPIONSHIP
+                            </button>
+                        </form>
+                        <p class="text-[10px] font-bold opacity-30 uppercase tracking-widest">Registering as: <span class="text-white">{{ $userTeam->name }}</span></p>
+                    @endif
+
+                    @if(auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('super_admin'))
+                        <div class="mt-4 border-t border-white/5 pt-4 w-full flex flex-col items-center">
+                            <form action="{{ route('admin.tournaments.launch', $tournament->slug) }}" method="POST">
+                                @csrf
+                                <button class="px-8 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl shadow-neon-primary hover:scale-105 transition-all">
+                                    🚀 Launch Tournament
+                                </button>
+                            </form>
+                            <p class="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest text-center">Admin: Starts matches & locks entries</p>
+                            @if($tournament->status === 'Live' && $tournament->has_group_stage && $isGroupStageCompleted)
+                                <form action="{{ route('admin.tournaments.knockout', $tournament->id) }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <button class="px-8 py-3 bg-secondary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl shadow-neon-secondary hover:scale-105 transition-all">
+                                        🏁 Generate Knockout Bracket
+                                    </button>
+                                </form>
+                                <p class="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest text-center">Group stage is finished. Ready for brackets!</p>
+                            @endif
+                        </div>
+                    @endif
+
                 @else
-                    <button class="glass opacity-50 cursor-not-allowed px-12 py-4 font-black tracking-[0.2em] text-xs border-white/10 uppercase" disabled>LOG IN AS CAPTAIN TO JOIN</button>
+                    <button class="btn-primary shadow-neon-primary px-12 py-4 font-black tracking-[0.2em] text-xs uppercase animate-pulse">
+                        WATCH BROADCAST
+                    </button>
                 @endif
             @else
-                <button class="btn-primary shadow-neon-primary px-12 py-4 font-black tracking-[0.2em] text-xs uppercase animate-pulse">WATCH BROADCAST</button>
-            @endif
+                <a href="{{ route('login') }}" class="btn-primary shadow-neon-primary px-12 py-5 font-black tracking-[0.2em] text-xs uppercase">
+                    LOGIN TO JOIN
+                </a>
+            @endauth
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="flex items-center justify-center md:justify-start gap-12 mt-16 border-t border-white/5 pt-8 overflow-x-auto">
-        @foreach(['brackets' => 'Tournament Brackets', 'teams' => 'Registered Teams', 'rules' => 'Rules & Information'] as $key => $label)
+        @php
+            $tabs = ['announcements' => 'Announcements'];
+            if($tournament->has_group_stage) {
+                $tabs['standings'] = 'Groups & Standings';
+            }
+            $tabs = array_merge($tabs, ['brackets' => 'Tournament Brackets', 'teams' => 'Registered Teams', 'rules' => 'Rules & Information']);
+        @endphp
+        @foreach($tabs as $key => $label)
             <button @click="activeTab = '{{ $key }}'" 
                     :class="activeTab === '{{ $key }}' ? 'text-primary border-primary' : 'text-gray-500 border-transparent'"
                     class="pb-6 text-[10px] font-black uppercase tracking-[0.3em] border-b-2 transition-all hover:text-primary whitespace-nowrap">
                 {{ $label }}
             </button>
         @endforeach
+        @if(auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('super_admin'))
+            <button @click="activeTab = 'registrations'"
+                    :class="activeTab === 'registrations' ? 'text-warning border-warning' : 'text-gray-500 border-transparent'"
+                    class="pb-6 text-[10px] font-black uppercase tracking-[0.3em] border-b-2 transition-all hover:text-warning whitespace-nowrap">
+                Registrations
+                @if($tournament->pending_registrations_count > 0)
+                    <span class="ml-1 px-1.5 py-0.5 bg-warning/20 text-warning rounded-md text-[9px]">{{ $tournament->pending_registrations_count }}</span>
+                @endif
+            </button>
+        @endif
     </div>
 </div>
